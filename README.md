@@ -65,6 +65,9 @@ astra_asr/
 # Clone
 git clone <repo-url> && cd astra_asr
 
+# install requirements for torch_audio
+sudo apt update -y && sudo apt install ffmpeg libavutil-dev -y
+
 # Install with uv (recommended)
 pip install uv
 uv sync
