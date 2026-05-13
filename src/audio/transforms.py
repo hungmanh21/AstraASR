@@ -78,8 +78,10 @@ def trim_silence(audio: AudioData, top_db: float = 30.0) -> AudioData:
 class AudioChunk:
     waveform: np.ndarray  # float32, (samples,) mono
     sample_rate: int
-    start: float           # start time in the original audio (seconds)
-    end: float             # end time in the original audio (seconds)
+    start: float           # start time in the original audio (seconds), includes overlap
+    end: float             # end time in the original audio (seconds), includes overlap
+    core_start: float      # VAD boundary before overlap was added
+    core_end: float        # VAD boundary before overlap was added
     index: int
     source: str
 
@@ -94,16 +96,15 @@ class AudioChunk:
 
 def chunk_by_vad(
     audio: AudioData,
-    max_duration: float = 30.0,
     min_speech_s: float = 0.25,
     min_silence_s: float = 0.3,
-    overlap_s: float = 0.5,
 ) -> List[AudioChunk]:
-    """Segment audio into chunks using Silero VAD.
+    """Segment audio into speech chunks using Silero VAD.
 
-    Speech segments are merged and split to respect max_duration.  Adjacent
-    chunks get overlap_s seconds of context from their neighbour so ASR has
-    no hard cuts at word boundaries.
+    Each returned AudioChunk covers exactly one VAD speech region and may be
+    arbitrarily long.  Long regions (>30 s) are decoded by the model's
+    timestamp-driven sliding window; pre-splitting here would place artificial
+    cuts at fixed boundaries and lose content that crosses them.
 
     Requires 16 kHz mono audio.
     """
@@ -131,41 +132,28 @@ def chunk_by_vad(
                 sample_rate=audio.sample_rate,
                 start=0.0,
                 end=audio.duration,
+                core_start=0.0,
+                core_end=audio.duration,
                 index=0,
                 source=audio.source,
             )
         ]
 
-    segments = _split_long_segments(speech_ts, max_duration)
-    total = audio.duration
     sr = audio.sample_rate
-    n = len(segments)
-
     chunks = []
-    for i, (seg_start, seg_end) in enumerate(segments):
-        start = max(0.0, seg_start - (overlap_s if i > 0 else 0.0))
-        end = min(total, seg_end + (overlap_s if i < n - 1 else 0.0))
+    for i, ts in enumerate(speech_ts):
+        start, end = ts["start"], ts["end"]
         chunks.append(
             AudioChunk(
                 waveform=audio.waveform[int(start * sr) : int(end * sr)],
                 sample_rate=sr,
                 start=start,
                 end=end,
+                core_start=start,
+                core_end=end,
                 index=i,
                 source=audio.source,
             )
         )
 
     return chunks
-
-
-def _split_long_segments(speech_ts: list, max_duration: float) -> list:
-    """Force-split any speech segment that exceeds max_duration."""
-    segments = []
-    for ts in speech_ts:
-        s, e = ts["start"], ts["end"]
-        while e - s > max_duration:
-            segments.append((s, s + max_duration))
-            s += max_duration
-        segments.append((s, e))
-    return segments

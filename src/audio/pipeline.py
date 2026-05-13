@@ -21,10 +21,8 @@ class AudioPipelineConfig:
     normalize_method: str = "peak"    # "peak" | "rms"
     do_trim_silence: bool = True
     trim_top_db: float = 30.0
-    vad_max_duration: float = 30.0    # max seconds per chunk (Whisper limit)
     vad_min_speech_s: float = 0.25    # min speech segment length for VAD
     vad_min_silence_s: float = 0.3    # min silence gap to trigger a split
-    chunk_overlap_s: float = 0.5      # overlap context added at chunk boundaries
 
     @classmethod
     def from_yaml(cls, path: Union[str, Path]) -> "AudioPipelineConfig":
@@ -52,9 +50,10 @@ def run(
     3. Mono  — average channels if stereo/multi-channel
     4. Normalize  — scale amplitude (peak or RMS)
     5. Trim silence  — strip leading/trailing silence (optional)
-    6. VAD chunk  — segment into ≤30 s speech chunks with overlap
+    6. VAD chunk  — segment into speech regions (arbitrary length)
 
-    Returns a list of AudioChunk objects ready for ASR model input.
+    Returns a list of AudioChunk objects.  Long regions (>30 s) are handled
+    by the model's timestamp-driven sliding window at inference time.
     """
     if config is None:
         config = AudioPipelineConfig()
@@ -69,8 +68,6 @@ def run(
 
     return chunk_by_vad(
         audio,
-        max_duration=config.vad_max_duration,
         min_speech_s=config.vad_min_speech_s,
         min_silence_s=config.vad_min_silence_s,
-        overlap_s=config.chunk_overlap_s,
     )
