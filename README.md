@@ -141,10 +141,10 @@ uvicorn src.serving.app:app --host 0.0.0.0 --port 8000
 **Goal:** End-to-end pipeline that accepts an audio/video file or URL and outputs a transcript. Must handle long audio at reasonable inference speed.
 
 **Tasks**
-- [ ] Finalize repo structure (folders, linting, CI skeleton)
-- [ ] Audio pre-processing pipeline — format conversion, noise gate, sample-rate normalisation
-- [ ] Long-audio chunking strategy (VAD-based segmentation + overlap merging)
-- [ ] Baseline batch inference — Whisper large-v3
+- [x] Finalize repo structure (folders, linting, CI skeleton)
+- [x] Audio pre-processing pipeline — format conversion, noise gate, sample-rate normalisation
+- [x] Long-audio chunking strategy (VAD-based segmentation + overlap merging)
+- [x] Baseline batch inference — Whisper large-v3
 - [ ] Baseline batch inference — NeMo Conformer (optional)
 - [ ] End-to-end smoke test on a 60-minute Vietnamese podcast
 

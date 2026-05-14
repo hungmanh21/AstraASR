@@ -1,0 +1,18 @@
+# Audio preprocessing pipeline configuration
+# Loaded via: AudioPipelineConfig.from_yaml("config/audio_pipeline.yaml")
+
+# Output sample rate — Whisper and Silero VAD both require 16000
+target_sr: 16000
+
+# Amplitude normalization: "peak" (scale max to 1.0) or "rms" (target RMS = 0.1)
+normalize_method: "peak"
+
+# Strip leading/trailing silence before VAD chunking
+do_trim_silence: true
+trim_top_db: 30.0        # dB below peak to consider silence
+
+# VAD chunking
+vad_max_duration: 30.0   # max chunk length in seconds (Whisper's context window)
+vad_min_speech_s: 0.25   # ignore speech segments shorter than this
+vad_min_silence_s: 0.3   # min silence gap that triggers a chunk boundary
+chunk_overlap_s: 0.5     # seconds of context added at each chunk boundary
